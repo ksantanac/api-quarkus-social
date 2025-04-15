@@ -2,6 +2,7 @@ package io.github.ksantanac.quarkussocial.rest;
 
 import io.github.ksantanac.quarkussocial.domain.model.Post;
 import io.github.ksantanac.quarkussocial.domain.model.User;
+import io.github.ksantanac.quarkussocial.domain.repository.FollowerRepository;
 import io.github.ksantanac.quarkussocial.domain.repository.PostRepository;
 import io.github.ksantanac.quarkussocial.domain.repository.UserRepository;
 import io.github.ksantanac.quarkussocial.rest.dto.CreatePostRequest;
@@ -23,11 +24,18 @@ public class PostResource {
 
     private UserRepository userRepository;
     private PostRepository repository;
+    private FollowerRepository followerRepository;
 
     @Inject
-    public PostResource(UserRepository userRepository, PostRepository repository) {
+    public PostResource(
+            UserRepository userRepository,
+            PostRepository repository,
+            FollowerRepository followerRepository
+    ) {
         this.userRepository = userRepository;
         this.repository = repository;
+        this.followerRepository = followerRepository;
+
     }
 
 
@@ -50,11 +58,28 @@ public class PostResource {
     }
 
     @GET
-    public Response listPost(@PathParam("userId") Long userId){
+    public Response listPost(@PathParam("userId") Long userId, @HeaderParam("followerId") Long followerId){
 
         User user = userRepository.findById(userId);
         if (user == null) {
             return  Response.status(Response.Status.NOT_FOUND).build();
+        }
+
+        var follower = userRepository.findById(followerId);
+
+        // CASO NAO SIGA O USUARIO NAO PODE VER OS POSTS
+        var follows = followerRepository.follows(follower, user);
+        if (!follows) {
+            return Response.status(Response.Status.FORBIDDEN).entity("You can't see these posts.").build();
+        }
+
+        // ESQUECEU DE PASSAR O HEADER
+        if (followerId == null){
+            return Response.status(Response.Status.BAD_REQUEST).entity("You forgot the header followerId").build();
+        }
+
+        if (follower == null){
+            return Response.status(Response.Status.BAD_REQUEST).entity("Inexistent FolloweId").build();
         }
 
         var query =  repository.find("user", Sort.by("dateTime", Sort.Direction.Descending) , user);
