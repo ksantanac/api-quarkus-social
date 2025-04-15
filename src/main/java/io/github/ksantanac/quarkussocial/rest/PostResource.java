@@ -79,7 +79,7 @@ public class PostResource {
         }
 
         if (follower == null){
-            return Response.status(Response.Status.BAD_REQUEST).entity("Inexistent FolloweId").build();
+            return Response.status(Response.Status.BAD_REQUEST).entity("Inexistent FollowerId").build();
         }
 
         var query =  repository.find("user", Sort.by("dateTime", Sort.Direction.Descending) , user);
