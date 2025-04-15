@@ -4,11 +4,15 @@ import io.github.ksantanac.quarkussocial.domain.model.Follower;
 import io.github.ksantanac.quarkussocial.domain.repository.FollowerRepository;
 import io.github.ksantanac.quarkussocial.domain.repository.UserRepository;
 import io.github.ksantanac.quarkussocial.rest.dto.FollowerRequest;
+import io.github.ksantanac.quarkussocial.rest.dto.FollowerResponse;
+import io.github.ksantanac.quarkussocial.rest.dto.FollowersPerUseResponse;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+
+import java.util.stream.Collectors;
 
 @Path("/users/{user_id}/followers")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -33,7 +37,6 @@ public class FollowerResource {
         }
 
         var user = userRepository.findById(userId);
-
         if (user == null) {
             return  Response.status(Response.Status.NOT_FOUND).build();
         }
@@ -53,6 +56,28 @@ public class FollowerResource {
 
 
         return Response.status(Response.Status.NO_CONTENT).build();
+
+    }
+
+    @GET
+    public Response listFollowers(@PathParam("user_id") Long userId){
+
+        var user = userRepository.findById(userId);
+        if (user == null) {
+            return  Response.status(Response.Status.NOT_FOUND).build();
+        }
+
+        var list = repository.findByUser(userId);
+
+        FollowersPerUseResponse responseObject = new FollowersPerUseResponse();
+        responseObject.setFollowersCount(list.size());
+
+        var followerList = list.stream()
+                .map(FollowerResponse::new)
+                .collect(Collectors.toList());
+
+        responseObject.setContet(followerList);
+        return Response.ok(responseObject).build();
 
     }
 
