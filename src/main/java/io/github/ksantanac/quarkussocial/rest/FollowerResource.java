@@ -5,6 +5,7 @@ import io.github.ksantanac.quarkussocial.domain.repository.FollowerRepository;
 import io.github.ksantanac.quarkussocial.domain.repository.UserRepository;
 import io.github.ksantanac.quarkussocial.rest.dto.FollowerRequest;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -24,7 +25,13 @@ public class FollowerResource {
     }
 
     @PUT
+    @Transactional
     public Response followerUser(@PathParam("user_id") Long userId, FollowerRequest request) {
+
+        if (userId.equals(request.getFollowerId())) {
+            return Response.status(Response.Status.CONFLICT).entity("You can't follow yourself").build();
+        }
+
         var user = userRepository.findById(userId);
 
         if (user == null) {
@@ -33,11 +40,17 @@ public class FollowerResource {
 
         var follower = userRepository.findById(request.getFollowerId());
 
-        var entity = new Follower();
-        entity.setUser(user);
-        entity.setFollower(follower);
+        boolean follows = repository.follows(follower, user);
 
-        repository.persist(entity);
+        if (!follows){
+
+            var entity = new Follower();
+            entity.setUser(user);
+            entity.setFollower(follower);
+
+            repository.persist(entity);
+        }
+
 
         return Response.status(Response.Status.NO_CONTENT).build();
 
